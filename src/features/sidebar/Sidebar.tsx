@@ -27,6 +27,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { useOverlayLayout } from "@/lib/useBreakpoint";
 import { cn } from "@/lib/utils";
+import { SidebarAuthCard } from "./SidebarAuthCard";
 
 export function Sidebar() {
   const pages = useAllPages();
@@ -89,6 +90,8 @@ export function Sidebar() {
           </div>
         )}
       </nav>
+
+      <SidebarAuthCard />
     </div>
   );
 }

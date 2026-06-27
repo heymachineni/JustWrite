@@ -82,6 +82,15 @@ interface PagesState {
 
   // maintenance
   pruneEmptyPages: (exceptId?: string | null) => void;
+
+  // cloud sync
+  applySnapshot: (snapshot: {
+    pages: Record<string, Page>;
+    projects: Record<string, Project>;
+    activePageId: string | null;
+  }) => void;
+  applyRemotePage: (page: Page) => void;
+  applyRemoteProject: (project: Project) => void;
 }
 
 export const usePagesStore = create<PagesState>()(
@@ -319,6 +328,27 @@ export const usePagesStore = create<PagesState>()(
           }
           return { pages };
         }),
+
+      applySnapshot: (snapshot) => {
+        set({
+          pages: snapshot.pages,
+          projects: snapshot.projects,
+          activePageId: snapshot.activePageId,
+        });
+        get().ensureInitialPage();
+      },
+
+      applyRemotePage: (page) =>
+        set((s) => {
+          const local = s.pages[page.id];
+          if (local && local.updatedAt > page.updatedAt) return s;
+          return { pages: { ...s.pages, [page.id]: page } };
+        }),
+
+      applyRemoteProject: (project) =>
+        set((s) => ({
+          projects: { ...s.projects, [project.id]: project },
+        })),
     }),
     {
       name: "blank.pages.v1",

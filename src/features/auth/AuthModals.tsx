@@ -1,0 +1,247 @@
+"use client";
+
+import * as React from "react";
+import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { OtpInput } from "./OtpInput";
+import { signInWithToken } from "@/lib/firebase/client";
+import { useAuthStore } from "./store";
+import { cn } from "@/lib/utils";
+
+export function AuthModals() {
+  const modalStep = useAuthStore((s) => s.modalStep);
+  const pendingEmail = useAuthStore((s) => s.pendingEmail);
+  const error = useAuthStore((s) => s.error);
+  const sending = useAuthStore((s) => s.sending);
+  const verifying = useAuthStore((s) => s.verifying);
+  const closeModal = useAuthStore((s) => s.closeModal);
+  const setPendingEmail = useAuthStore((s) => s.setPendingEmail);
+  const setModalStep = useAuthStore((s) => s.setModalStep);
+  const setError = useAuthStore((s) => s.setError);
+  const setSending = useAuthStore((s) => s.setSending);
+  const setVerifying = useAuthStore((s) => s.setVerifying);
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const [email, setEmail] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [devCode, setDevCode] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (modalStep === "email") {
+      setEmail(pendingEmail);
+      setCode("");
+    }
+  }, [modalStep, pendingEmail]);
+
+  const handleSendCode = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError("Enter a valid email.");
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not send code.");
+        return;
+      }
+      setPendingEmail(trimmed);
+      setModalStep("otp");
+      if (data.devCode) {
+        setDevCode(String(data.devCode));
+        console.info(`[auth] sign-in code: ${data.devCode}`);
+      }
+    } catch {
+      setError("Could not send code. Try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (code.length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
+
+    setVerifying(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail, code }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Invalid sign in code. Please try again.");
+        return;
+      }
+
+      if (data.demo) {
+        setUser({ uid: data.user.uid, email: data.user.email, demo: true });
+        closeModal();
+        return;
+      }
+
+      if (data.token) {
+        const user = await signInWithToken(data.token);
+        setUser({ uid: user.uid, email: user.email });
+        closeModal();
+      }
+    } catch {
+      setError("Could not verify code. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setCode("");
+    setError(null);
+    setSending(true);
+    try {
+      const res = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Could not resend code.");
+      } else if (data.devCode) {
+        setDevCode(String(data.devCode));
+        console.info(`[auth] sign-in code: ${data.devCode}`);
+      }
+    } catch {
+      setError("Could not resend code.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={modalStep != null}
+      onOpenChange={(open) => !open && closeModal()}
+    >
+      <DialogContent showClose={false} className="rounded-xl p-0">
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={closeModal}
+          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-fg transition-colors hover:bg-[var(--hover)] hover:text-fg"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {modalStep === "email" && (
+          <div className="p-5 pt-6">
+            <DialogTitle className="text-[17px] tracking-tight">
+              Continue with email
+            </DialogTitle>
+            <DialogDescription className="mt-1.5 text-[13px]">
+              Sign in or create your account.
+            </DialogDescription>
+
+            <input
+              type="email"
+              autoFocus
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendCode()}
+              className="mt-4 w-full rounded-xl border border-border bg-bg px-3.5 py-2.5 text-[14px] text-fg outline-none placeholder:text-faint-fg focus:border-border-strong"
+            />
+
+            {error && (
+              <p className="mt-2 text-[13px] text-destructive">{error}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={sending}
+              className={cn(
+                "mt-4 w-full rounded-xl bg-fg py-2.5 text-[14px] font-medium text-bg transition-opacity",
+                sending && "opacity-60"
+              )}
+            >
+              {sending ? "Sending…" : "Continue"}
+            </button>
+          </div>
+        )}
+
+        {modalStep === "otp" && (
+          <div className="p-5 pt-6">
+            <DialogTitle className="text-[17px] tracking-tight">
+              Check your email
+            </DialogTitle>
+            <DialogDescription className="mt-1.5 text-[13px] leading-relaxed">
+              We sent a sign in code to {pendingEmail}. Look in your spam folder
+              if you don&apos;t see it.
+            </DialogDescription>
+
+            {devCode && (
+              <p className="mt-3 rounded-lg bg-[var(--muted)] px-3 py-2 text-center font-mono text-[15px] font-medium tracking-widest text-fg">
+                {devCode}
+              </p>
+            )}
+
+            <div className="mt-5">
+              <OtpInput
+                value={code}
+                onChange={setCode}
+                disabled={verifying}
+              />
+            </div>
+
+            {error && (
+              <p className="mt-3 text-center text-[13px] text-destructive">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={sending || verifying}
+                className="flex-1 rounded-xl border border-border py-2.5 text-[14px] font-medium text-fg transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
+              >
+                {sending ? "Sending…" : "Resend code"}
+              </button>
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={verifying || code.length !== 6}
+                className={cn(
+                  "flex-1 rounded-xl bg-fg py-2.5 text-[14px] font-medium text-bg transition-opacity",
+                  (verifying || code.length !== 6) && "opacity-60"
+                )}
+              >
+                {verifying ? "Verifying…" : "Verify code"}
+              </button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

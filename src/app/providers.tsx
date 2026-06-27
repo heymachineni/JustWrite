@@ -4,6 +4,9 @@ import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
+import { AuthProvider } from "@/features/auth/AuthProvider";
+import { AuthModals } from "@/features/auth/AuthModals";
+import { FirestoreSync } from "@/features/sync/FirestoreSync";
 import { useSettingsStore } from "@/features/settings/store";
 
 function ThemeController() {
@@ -47,12 +50,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <ThemeController />
-      <ToastProvider>
-        <TooltipProvider delayDuration={400} skipDelayDuration={200}>
-          {children}
-        </TooltipProvider>
-      </ToastProvider>
+      <AuthProvider>
+        <ThemeController />
+        <ToastProvider>
+          <TooltipProvider delayDuration={400} skipDelayDuration={200}>
+            {children}
+            <AuthModals />
+            <FirestoreSync />
+          </TooltipProvider>
+        </ToastProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
