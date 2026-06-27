@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { isFirebaseAdminConfigured, getAdminInitError } from "@/lib/firebase/admin";
 
 export async function GET() {
   const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -36,7 +36,7 @@ export async function GET() {
       const { getAdminFirestore } = await import("@/lib/firebase/admin");
       const db = await getAdminFirestore();
       if (!db) {
-        firestoreError = "Firestore client unavailable";
+        firestoreError = getAdminInitError() ?? "Firestore client unavailable";
       } else {
         const ref = db.collection("_health").doc("ping");
         await ref.set({ at: Date.now() });
@@ -57,6 +57,7 @@ export async function GET() {
       firebaseJsonValid,
       firebaseJsonError,
       firebaseConfigured: isFirebaseAdminConfigured(),
+      adminInitError: getAdminInitError(),
       firestoreOk,
       firestoreError,
       resendKeySet: Boolean(process.env.RESEND_API_KEY),

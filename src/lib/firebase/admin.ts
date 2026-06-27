@@ -5,6 +5,12 @@ type ServiceAccount = {
   [key: string]: unknown;
 };
 
+let lastInitError: string | null = null;
+
+export function getAdminInitError(): string | null {
+  return lastInitError;
+}
+
 function normalizePrivateKey(key: string): string {
   return key.replace(/\\n/g, "\n");
 }
@@ -15,6 +21,13 @@ function parseServiceAccountRaw(raw: string): ServiceAccount | null {
     if (typeof sa.private_key === "string") {
       sa.private_key = normalizePrivateKey(sa.private_key);
     }
+    if (
+      !sa.project_id ||
+      !sa.client_email ||
+      typeof sa.private_key !== "string"
+    ) {
+      return null;
+    }
     return sa;
   } catch {
     return null;
@@ -22,8 +35,8 @@ function parseServiceAccountRaw(raw: string): ServiceAccount | null {
 }
 
 function getServiceAccount(): ServiceAccount | null {
-  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64;
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64?.trim();
+  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
 
   if (base64) {
     const fromBase64 = parseServiceAccountRaw(
@@ -41,12 +54,14 @@ function getServiceAccount(): ServiceAccount | null {
 }
 
 export function isFirebaseAdminConfigured(): boolean {
-  return Boolean(getServiceAccount() && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  return Boolean(getServiceAccount());
 }
 
 type AdminModule = typeof import("firebase-admin/app");
 type AuthModule = typeof import("firebase-admin/auth");
 type FirestoreModule = typeof import("firebase-admin/firestore");
+
+const APP_NAME = "just-write";
 
 let adminApp: import("firebase-admin/app").App | null = null;
 let adminModules: {
@@ -69,23 +84,42 @@ async function loadAdminModules() {
 }
 
 async function getAdminApp() {
-  if (!isFirebaseAdminConfigured()) return null;
-  if (adminApp) return adminApp;
+  lastInitError = null;
 
   const serviceAccount = getServiceAccount();
-  if (!serviceAccount) return null;
+  if (!serviceAccount) {
+    lastInitError = "Service account env var missing or invalid.";
+    return null;
+  }
+
+  if (adminApp) return adminApp;
 
   try {
     const { app } = await loadAdminModules();
-    adminApp =
-      app.getApps().length > 0
-        ? app.getApps()[0]
-        : app.initializeApp({
-            credential: app.cert(serviceAccount as import("firebase-admin/app").ServiceAccount),
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          });
+
+    try {
+      adminApp = app.getApp(APP_NAME);
+      return adminApp;
+    } catch {
+      // Not initialized yet.
+    }
+
+    adminApp = app.initializeApp(
+      {
+        credential: app.cert({
+          projectId: serviceAccount.project_id,
+          clientEmail: serviceAccount.client_email,
+          privateKey: serviceAccount.private_key,
+        }),
+        projectId: serviceAccount.project_id,
+      },
+      APP_NAME
+    );
   } catch (error) {
+    lastInitError =
+      error instanceof Error ? error.message : "Firebase Admin init failed";
     console.error("[firebase/admin] initializeApp failed:", error);
+    adminApp = null;
     return null;
   }
 
