@@ -28,6 +28,27 @@ export async function GET() {
     }
   }
 
+  let firestoreOk = false;
+  let firestoreError: string | null = null;
+
+  if (isFirebaseAdminConfigured()) {
+    try {
+      const { getAdminFirestore } = await import("@/lib/firebase/admin");
+      const db = await getAdminFirestore();
+      if (!db) {
+        firestoreError = "Firestore client unavailable";
+      } else {
+        const ref = db.collection("_health").doc("ping");
+        await ref.set({ at: Date.now() });
+        await ref.delete();
+        firestoreOk = true;
+      }
+    } catch (error) {
+      firestoreError =
+        error instanceof Error ? error.message : "Firestore check failed";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     env: {
@@ -36,6 +57,8 @@ export async function GET() {
       firebaseJsonValid,
       firebaseJsonError,
       firebaseConfigured: isFirebaseAdminConfigured(),
+      firestoreOk,
+      firestoreError,
       resendKeySet: Boolean(process.env.RESEND_API_KEY),
       authEmailFrom: process.env.AUTH_EMAIL_FROM ?? "(default onboarding@resend.dev)",
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? null,

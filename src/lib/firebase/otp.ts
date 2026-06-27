@@ -12,6 +12,23 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function otpDocId(email: string): string {
+  return Buffer.from(normalizeEmail(email)).toString("base64url");
+}
+
+function readExpiresAt(value: unknown): number {
+  if (typeof value === "number") return value;
+  if (
+    value &&
+    typeof value === "object" &&
+    "toMillis" in value &&
+    typeof (value as { toMillis: () => number }).toMillis === "function"
+  ) {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  return 0;
+}
+
 export async function storeOtp(email: string, code: string): Promise<void> {
   const normalized = normalizeEmail(email);
 
@@ -38,13 +55,17 @@ export async function storeOtp(email: string, code: string): Promise<void> {
   }
 
   try {
-    await db.collection(OTP_COLLECTION).doc(normalized).set({
-      code,
+    await db.collection(OTP_COLLECTION).doc(otpDocId(normalized)).set({
+      email: normalized,
+      code: String(code),
       expiresAt: Date.now() + OTP_TTL_MS,
       attempts: 0,
     });
   } catch (error) {
     console.error("[auth] Failed to store OTP in Firestore:", error);
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Could not store sign-in code. Check Firestore is enabled.");
+    }
   }
 }
 
@@ -75,28 +96,32 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
   const db = await getAdminFirestore();
   if (!db) return false;
 
-  const ref = db.collection(OTP_COLLECTION).doc(normalized);
+  const ref = db.collection(OTP_COLLECTION).doc(otpDocId(normalized));
   const snap = await ref.get();
   if (!snap.exists) return false;
 
   const data = snap.data() as {
     code: string;
-    expiresAt: number;
-    attempts: number;
+    expiresAt: unknown;
+    attempts?: number;
   };
 
-  if (Date.now() > data.expiresAt) {
+  const expiresAt = readExpiresAt(data.expiresAt);
+  const attempts = data.attempts ?? 0;
+  const storedCode = String(data.code ?? "");
+
+  if (!expiresAt || Date.now() > expiresAt) {
     await ref.delete();
     return false;
   }
 
-  if (data.attempts >= MAX_ATTEMPTS) {
+  if (attempts >= MAX_ATTEMPTS) {
     await ref.delete();
     return false;
   }
 
-  if (data.code !== code) {
-    await ref.set({ ...data, attempts: data.attempts + 1 }, { merge: true });
+  if (storedCode !== String(code)) {
+    await ref.set({ attempts: attempts + 1 }, { merge: true });
     return false;
   }
 
