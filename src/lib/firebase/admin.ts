@@ -2,14 +2,40 @@ import { initializeApp, getApps, cert, type App, type ServiceAccount } from "fir
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
-function getServiceAccount(): Record<string, string> | null {
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!json) return null;
+function normalizePrivateKey(key: string): string {
+  return key.replace(/\\n/g, "\n");
+}
+
+function parseServiceAccountRaw(raw: string): Record<string, string> | null {
   try {
-    return JSON.parse(json) as Record<string, string>;
+    const sa = JSON.parse(raw) as Record<string, string>;
+    if (typeof sa.private_key === "string") {
+      sa.private_key = normalizePrivateKey(sa.private_key);
+    }
+    return sa;
   } catch {
     return null;
   }
+}
+
+function getServiceAccount(): Record<string, string> | null {
+  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64;
+  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+  // Prefer base64 — raw JSON often breaks when pasted into Vercel.
+  if (base64) {
+    const fromBase64 = parseServiceAccountRaw(
+      Buffer.from(base64, "base64").toString("utf8")
+    );
+    if (fromBase64) return fromBase64;
+  }
+
+  if (json) {
+    const fromJson = parseServiceAccountRaw(json);
+    if (fromJson) return fromJson;
+  }
+
+  return null;
 }
 
 export function isFirebaseAdminConfigured(): boolean {
@@ -25,13 +51,18 @@ function getAdminApp(): App | null {
   const serviceAccount = getServiceAccount();
   if (!serviceAccount) return null;
 
-  adminApp =
-    getApps().length > 0
-      ? getApps()[0]
-      : initializeApp({
-          credential: cert(serviceAccount as ServiceAccount),
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        });
+  try {
+    adminApp =
+      getApps().length > 0
+        ? getApps()[0]
+        : initializeApp({
+            credential: cert(serviceAccount as ServiceAccount),
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          });
+  } catch (error) {
+    console.error("[firebase/admin] initializeApp failed:", error);
+    return null;
+  }
 
   return adminApp;
 }

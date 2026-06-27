@@ -8,8 +8,6 @@ import {
   storeOtp,
   OtpEmailError,
 } from "@/lib/firebase/otp";
-import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
-
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { email?: string };
@@ -23,6 +21,8 @@ export async function POST(request: Request) {
     await storeOtp(email, code);
     const delivery = await sendOtpEmail(email, code);
 
+    const { isFirebaseAdminConfigured } = await import("@/lib/firebase/admin");
+
     return NextResponse.json({
       ok: true,
       configured: isFirebaseAdminConfigured(),
@@ -34,9 +34,8 @@ export async function POST(request: Request) {
     if (error instanceof OtpEmailError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: "Could not send code. Try again." },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Could not send code. Try again.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

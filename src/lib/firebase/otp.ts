@@ -32,13 +32,20 @@ export async function storeOtp(email: string, code: string): Promise<void> {
   }
 
   const db = getAdminFirestore();
-  if (!db) throw new Error("Firestore unavailable");
+  if (!db) {
+    console.warn("[auth] Firestore unavailable — OTP stored in memory only (dev).");
+    return;
+  }
 
-  await db.collection(OTP_COLLECTION).doc(normalized).set({
-    code,
-    expiresAt: Date.now() + OTP_TTL_MS,
-    attempts: 0,
-  });
+  try {
+    await db.collection(OTP_COLLECTION).doc(normalized).set({
+      code,
+      expiresAt: Date.now() + OTP_TTL_MS,
+      attempts: 0,
+    });
+  } catch (error) {
+    console.error("[auth] Failed to store OTP in Firestore:", error);
+  }
 }
 
 export async function verifyOtp(email: string, code: string): Promise<boolean> {
@@ -66,7 +73,7 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
   }
 
   const db = getAdminFirestore();
-  if (!db) throw new Error("Firestore unavailable");
+  if (!db) return false;
 
   const ref = db.collection(OTP_COLLECTION).doc(normalized);
   const snap = await ref.get();
