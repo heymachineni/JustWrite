@@ -1,14 +1,17 @@
-import { initializeApp, getApps, cert, type App, type ServiceAccount } from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+type ServiceAccount = {
+  project_id?: string;
+  client_email?: string;
+  private_key?: string;
+  [key: string]: unknown;
+};
 
 function normalizePrivateKey(key: string): string {
   return key.replace(/\\n/g, "\n");
 }
 
-function parseServiceAccountRaw(raw: string): Record<string, string> | null {
+function parseServiceAccountRaw(raw: string): ServiceAccount | null {
   try {
-    const sa = JSON.parse(raw) as Record<string, string>;
+    const sa = JSON.parse(raw) as ServiceAccount;
     if (typeof sa.private_key === "string") {
       sa.private_key = normalizePrivateKey(sa.private_key);
     }
@@ -18,11 +21,10 @@ function parseServiceAccountRaw(raw: string): Record<string, string> | null {
   }
 }
 
-function getServiceAccount(): Record<string, string> | null {
+function getServiceAccount(): ServiceAccount | null {
   const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64;
   const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
-  // Prefer base64 — raw JSON often breaks when pasted into Vercel.
   if (base64) {
     const fromBase64 = parseServiceAccountRaw(
       Buffer.from(base64, "base64").toString("utf8")
@@ -42,9 +44,31 @@ export function isFirebaseAdminConfigured(): boolean {
   return Boolean(getServiceAccount() && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
 }
 
-let adminApp: App | null = null;
+type AdminModule = typeof import("firebase-admin/app");
+type AuthModule = typeof import("firebase-admin/auth");
+type FirestoreModule = typeof import("firebase-admin/firestore");
 
-function getAdminApp(): App | null {
+let adminApp: import("firebase-admin/app").App | null = null;
+let adminModules: {
+  app: AdminModule;
+  auth: AuthModule;
+  firestore: FirestoreModule;
+} | null = null;
+
+async function loadAdminModules() {
+  if (adminModules) return adminModules;
+
+  const [app, auth, firestore] = await Promise.all([
+    import("firebase-admin/app"),
+    import("firebase-admin/auth"),
+    import("firebase-admin/firestore"),
+  ]);
+
+  adminModules = { app, auth, firestore };
+  return adminModules;
+}
+
+async function getAdminApp() {
   if (!isFirebaseAdminConfigured()) return null;
   if (adminApp) return adminApp;
 
@@ -52,11 +76,12 @@ function getAdminApp(): App | null {
   if (!serviceAccount) return null;
 
   try {
+    const { app } = await loadAdminModules();
     adminApp =
-      getApps().length > 0
-        ? getApps()[0]
-        : initializeApp({
-            credential: cert(serviceAccount as ServiceAccount),
+      app.getApps().length > 0
+        ? app.getApps()[0]
+        : app.initializeApp({
+            credential: app.cert(serviceAccount as import("firebase-admin/app").ServiceAccount),
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
           });
   } catch (error) {
@@ -67,12 +92,16 @@ function getAdminApp(): App | null {
   return adminApp;
 }
 
-export function getAdminAuth(): Auth | null {
-  const app = getAdminApp();
-  return app ? getAuth(app) : null;
+export async function getAdminAuth() {
+  const app = await getAdminApp();
+  if (!app) return null;
+  const { auth } = await loadAdminModules();
+  return auth.getAuth(app);
 }
 
-export function getAdminFirestore(): Firestore | null {
-  const app = getAdminApp();
-  return app ? getFirestore(app) : null;
+export async function getAdminFirestore() {
+  const app = await getAdminApp();
+  if (!app) return null;
+  const { firestore } = await loadAdminModules();
+  return firestore.getFirestore(app);
 }

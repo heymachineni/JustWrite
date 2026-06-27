@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { normalizeEmail, verifyOtp } from "@/lib/firebase/otp";
-import { getAdminAuth, isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +25,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const { getAdminAuth, isFirebaseAdminConfigured } = await import(
+      "@/lib/firebase/admin"
+    );
+
     if (!isFirebaseAdminConfigured()) {
       return NextResponse.json({
         ok: true,
@@ -34,7 +37,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const auth = getAdminAuth();
+    const auth = await getAdminAuth();
     if (!auth) {
       return NextResponse.json({ error: "Auth unavailable." }, { status: 500 });
     }

@@ -31,7 +31,7 @@ export async function storeOtp(email: string, code: string): Promise<void> {
     return;
   }
 
-  const db = getAdminFirestore();
+  const db = await getAdminFirestore();
   if (!db) {
     console.warn("[auth] Firestore unavailable — OTP stored in memory only (dev).");
     return;
@@ -72,7 +72,7 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
     return false;
   }
 
-  const db = getAdminFirestore();
+  const db = await getAdminFirestore();
   if (!db) return false;
 
   const ref = db.collection(OTP_COLLECTION).doc(normalized);
