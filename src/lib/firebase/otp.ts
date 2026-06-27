@@ -47,7 +47,7 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
   if (process.env.NODE_ENV === "development") {
     const store = globalThis.__devOtpStore;
     const entry = store?.get(normalized);
-    if (entry) {
+    if (store && entry) {
       if (Date.now() > entry.expiresAt) {
         store.delete(normalized);
       } else if (entry.code === code) {
