@@ -57,31 +57,9 @@ export function isFirebaseAdminConfigured(): boolean {
   return Boolean(getServiceAccount());
 }
 
-type AdminModule = typeof import("firebase-admin/app");
-type AuthModule = typeof import("firebase-admin/auth");
-type FirestoreModule = typeof import("firebase-admin/firestore");
-
 const APP_NAME = "just-write";
 
 let adminApp: import("firebase-admin/app").App | null = null;
-let adminModules: {
-  app: AdminModule;
-  auth: AuthModule;
-  firestore: FirestoreModule;
-} | null = null;
-
-async function loadAdminModules() {
-  if (adminModules) return adminModules;
-
-  const [app, auth, firestore] = await Promise.all([
-    import("firebase-admin/app"),
-    import("firebase-admin/auth"),
-    import("firebase-admin/firestore"),
-  ]);
-
-  adminModules = { app, auth, firestore };
-  return adminModules;
-}
 
 async function getAdminApp() {
   lastInitError = null;
@@ -95,18 +73,18 @@ async function getAdminApp() {
   if (adminApp) return adminApp;
 
   try {
-    const { app } = await loadAdminModules();
+    const appMod = await import("firebase-admin/app");
 
     try {
-      adminApp = app.getApp(APP_NAME);
+      adminApp = appMod.getApp(APP_NAME);
       return adminApp;
     } catch {
       // Not initialized yet.
     }
 
-    adminApp = app.initializeApp(
+    adminApp = appMod.initializeApp(
       {
-        credential: app.cert({
+        credential: appMod.cert({
           projectId: serviceAccount.project_id,
           clientEmail: serviceAccount.client_email,
           privateKey: serviceAccount.private_key,
@@ -129,13 +107,29 @@ async function getAdminApp() {
 export async function getAdminAuth() {
   const app = await getAdminApp();
   if (!app) return null;
-  const { auth } = await loadAdminModules();
-  return auth.getAuth(app);
+
+  try {
+    const authMod = await import("firebase-admin/auth");
+    return authMod.getAuth(app);
+  } catch (error) {
+    lastInitError =
+      error instanceof Error ? error.message : "Firebase Auth module failed";
+    console.error("[firebase/admin] auth module failed:", error);
+    return null;
+  }
 }
 
 export async function getAdminFirestore() {
   const app = await getAdminApp();
   if (!app) return null;
-  const { firestore } = await loadAdminModules();
-  return firestore.getFirestore(app);
+
+  try {
+    const firestoreMod = await import("firebase-admin/firestore");
+    return firestoreMod.getFirestore(app);
+  } catch (error) {
+    lastInitError =
+      error instanceof Error ? error.message : "Firestore module failed";
+    console.error("[firebase/admin] firestore module failed:", error);
+    return null;
+  }
 }
