@@ -67,36 +67,32 @@ export function OptionsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[min(92vh,720px)] flex flex-col"
+        className="flex max-h-[min(92vh,720px)] flex-col"
       >
-        <div className="flex min-h-0 flex-1 flex-col">
-          <PanelHeader
-            title={SCREEN_TITLES[screen]}
-            onClose={() => onOpenChange(false)}
-            onBack={stack.length > 1 ? pop : undefined}
-          />
+        <PanelHeader
+          title={SCREEN_TITLES[screen]}
+          onClose={() => onOpenChange(false)}
+          onBack={stack.length > 1 ? pop : undefined}
+        />
 
-          <PanelBody>
-            {screen === "root" && (
-              <RootScreen menu={menu} onNavigate={push} />
-            )}
-            {screen === "text-style" && <TextStyleScreen menu={menu} />}
-            {screen === "editor-mode" && <EditorModeScreen menu={menu} />}
-            {screen === "advanced" && (
-              <AdvancedScreen menu={menu} onNavigate={push} />
-            )}
-            {screen === "time-limit" && <TimeLimitScreen menu={menu} />}
-            {screen === "word-target" && <WordTargetScreen menu={menu} />}
-          </PanelBody>
+        <PanelBody className={screen === "root" ? "pb-4" : undefined}>
+          {screen === "root" && <RootScreen menu={menu} onNavigate={push} />}
+          {screen === "text-style" && <TextStyleScreen menu={menu} />}
+          {screen === "editor-mode" && <EditorModeScreen menu={menu} />}
+          {screen === "advanced" && (
+            <AdvancedScreen menu={menu} onNavigate={push} />
+          )}
+          {screen === "time-limit" && <TimeLimitScreen menu={menu} />}
+          {screen === "word-target" && <WordTargetScreen menu={menu} />}
+        </PanelBody>
 
-          {screen === "root" ? (
-            <div className="shrink-0 border-t border-border px-5 py-3">
-              <p className="text-[12px] text-faint-fg">
-                Version {APP_VERSION}
-              </p>
-            </div>
-          ) : null}
-        </div>
+        {screen === "root" ? (
+          <div className="shrink-0 border-t border-border px-5 py-3">
+            <span className="text-[12px] text-faint-fg">
+              Version {APP_VERSION}
+            </span>
+          </div>
+        ) : null}
       </SheetContent>
     </Sheet>
   );

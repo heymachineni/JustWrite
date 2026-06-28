@@ -37,7 +37,7 @@ export function Sidebar() {
   const overlayLayout = useOverlayLayout();
 
   return (
-    <div className="flex h-full w-full flex-col bg-transparent">
+    <div className="flex h-full w-full flex-col bg-bg">
       <div className="flex items-center justify-between px-4 py-3.5">
         <span className="text-[15px] font-semibold tracking-tight text-fg">
           Just Write
@@ -114,7 +114,9 @@ function SidebarPageItem({
 
   const selectPage = () => {
     usePagesStore.getState().setActivePage(page.id);
-    useSettingsStore.getState().setSidebarOpen(false);
+    if (overlayLayout) {
+      useSettingsStore.getState().setSidebarOpen(false);
+    }
   };
 
   const startRename = () => {
@@ -215,21 +217,17 @@ function SidebarPageItem({
                 <PanelSection>
                   <PanelActionRow
                     label="Rename"
-                    trailing={<Pencil className="h-4 w-4 shrink-0 text-faint-fg" />}
+                    trailing={<Pencil className="h-4 w-4 shrink-0" />}
                     onClick={startRename}
                   />
                   <PanelActionRow
                     label="Share"
-                    trailing={
-                      <ShareIcon className="h-4 w-4 shrink-0 text-faint-fg" />
-                    }
+                    trailing={<ShareIcon className="h-4 w-4 shrink-0" />}
                     onClick={handleShare}
                   />
                   <PanelActionRow
                     label="Delete"
-                    trailing={
-                      <Trash2 className="h-4 w-4 shrink-0 text-destructive" />
-                    }
+                    trailing={<Trash2 className="h-4 w-4 shrink-0" />}
                     onClick={handleDelete}
                     destructive
                   />
@@ -254,26 +252,16 @@ function SidebarPageItem({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={6} className="w-52">
-            <DropdownMenuItem
-              onSelect={startRename}
-              className="justify-between"
-            >
+            <DropdownMenuItem onSelect={startRename} className="justify-between">
               Rename
-              <Pencil className="h-4 w-4 text-faint-fg" />
+              <Pencil className="h-4 w-4" />
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={handleShare}
-              className="justify-between"
-            >
+            <DropdownMenuItem onSelect={handleShare} className="justify-between">
               Share
-              <ShareIcon className="h-4 w-4 text-faint-fg" />
+              <ShareIcon className="h-4 w-4" />
             </DropdownMenuItem>
             <DropdownMenuSeparator fullBleed />
-            <DropdownMenuItem
-              destructive
-              onSelect={handleDelete}
-              className="justify-between"
-            >
+            <DropdownMenuItem destructive onSelect={handleDelete} className="justify-between">
               Delete
               <Trash2 className="h-4 w-4" />
             </DropdownMenuItem>

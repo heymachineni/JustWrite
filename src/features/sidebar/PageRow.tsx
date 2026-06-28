@@ -130,33 +130,30 @@ export function PageRow({
           >
             {page.pinned ? "Unpin" : "Pin"}
             {page.pinned ? (
-              <PinOff className="h-4 w-4 text-faint-fg" />
+              <PinOff className="h-4 w-4" />
             ) : (
-              <Pin className="h-4 w-4 text-faint-fg" />
+              <Pin className="h-4 w-4" />
             )}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={startRename} className="justify-between">
             Rename
-            <Pencil className="h-4 w-4 text-faint-fg" />
+            <Pencil className="h-4 w-4" />
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => store.getState().duplicatePage(page.id)}
             className="justify-between"
           >
             Duplicate
-            <Copy className="h-4 w-4 text-faint-fg" />
+            <Copy className="h-4 w-4" />
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => onShare(page.id)}
-            className="justify-between"
-          >
+          <DropdownMenuItem onSelect={() => onShare(page.id)} className="justify-between">
             Share
-            <Share2 className="h-4 w-4 text-faint-fg" />
+            <Share2 className="h-4 w-4" />
           </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTriggerStyled className="justify-between">
               Move to
-              <FolderInput className="h-4 w-4 text-faint-fg" />
+              <FolderInput className="h-4 w-4" />
             </DropdownMenuSubTriggerStyled>
             <DropdownMenuSubContent>
               <DropdownMenuItem
