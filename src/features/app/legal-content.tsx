@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const CONTACT_EMAIL = "heymachineni@gmail.com";
-export const LEGAL_UPDATED = "June 14, 2026";
+export const LEGAL_UPDATED = "June 28, 2026";
 
 function LegalDoc({ children }: { children: React.ReactNode }) {
   return <div className="space-y-0 pb-2">{children}</div>;

@@ -42,7 +42,7 @@ export function IntroPanel({
             className={cn(
               "fixed z-[61] flex flex-col overflow-hidden",
               isMobile
-                ? "inset-0 bg-bg"
+                ? "inset-0 bg-bg-elevated"
                 : cn(PANEL_FLOAT_RIGHT, PANEL_SHELL, "w-full max-w-[400px]")
             )}
             initial={isMobile ? { opacity: 0 } : { x: "105%" }}

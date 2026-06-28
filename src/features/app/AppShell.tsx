@@ -10,7 +10,6 @@ import {
   useFocusSessionStore,
 } from "@/features/focus/store";
 import { useGlobalShortcuts } from "@/features/shortcuts/useGlobalShortcuts";
-import { useOverlayLayout } from "@/lib/useBreakpoint";
 import { WordCount } from "@/features/editor/WordCount";
 import { PageDate } from "@/features/editor/PageDate";
 import { Sidebar } from "@/features/sidebar/Sidebar";
@@ -48,8 +47,6 @@ export function AppShell() {
     (s) => s.typewriterSoundEnabled
   );
   const nightComplete = useFocusSessionStore((s) => s.nightComplete);
-
-  const overlayLayout = useOverlayLayout();
 
   const [editor, setEditor] = React.useState<TiptapEditor | null>(null);
   const [panelView, setPanelView] = React.useState<PanelView>(null);
@@ -105,11 +102,11 @@ export function AppShell() {
     }
   }, [focusMode]);
 
-  const mobileSidebarInit = React.useRef(false);
+  const sidebarInit = React.useRef(false);
   React.useEffect(() => {
-    if (!settingsHydrated || mobileSidebarInit.current) return;
-    mobileSidebarInit.current = true;
-    if (window.innerWidth <= 767 && useSettingsStore.getState().sidebarOpen) {
+    if (!settingsHydrated || sidebarInit.current) return;
+    sidebarInit.current = true;
+    if (useSettingsStore.getState().sidebarOpen) {
       setSidebarOpen(false);
     }
   }, [settingsHydrated, setSidebarOpen]);
@@ -147,49 +144,34 @@ export function AppShell() {
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-bg">
-      {!overlayLayout && (
-        <motion.aside
-          initial={false}
-          animate={{ width: sidebarVisible ? SIDEBAR_WIDTH : 0 }}
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-          className="relative h-full shrink-0 overflow-hidden border-r border-border"
-        >
-          <div style={{ width: SIDEBAR_WIDTH }} className="h-full">
-            <Sidebar />
-          </div>
-        </motion.aside>
-      )}
-
-      {overlayLayout && (
-        <AnimatePresence>
-          {sidebarVisible && (
-            <>
-              <motion.div
-                className="fixed inset-0 z-40 bg-black/25"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => setSidebarOpen(false)}
-              />
-              <motion.aside
-                className={cn(
-                  "fixed z-50 overflow-hidden",
-                  PANEL_FLOAT_LEFT,
-                  PANEL_SHELL
-                )}
-                style={{ width: SIDEBAR_WIDTH }}
-                initial={{ x: -(SIDEBAR_WIDTH + 24) }}
-                animate={{ x: 0 }}
-                exit={{ x: -(SIDEBAR_WIDTH + 24) }}
-                transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-              >
-                <Sidebar />
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
-      )}
+      <AnimatePresence>
+        {sidebarVisible && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/25"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              className={cn(
+                "fixed z-50 overflow-hidden",
+                PANEL_FLOAT_LEFT,
+                PANEL_SHELL
+              )}
+              style={{ width: SIDEBAR_WIDTH }}
+              initial={{ x: -(SIDEBAR_WIDTH + 24) }}
+              animate={{ x: 0 }}
+              exit={{ x: -(SIDEBAR_WIDTH + 24) }}
+              transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <Sidebar />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       <main className="relative flex h-full min-w-0 flex-1 flex-col">
         {focusMode ? (

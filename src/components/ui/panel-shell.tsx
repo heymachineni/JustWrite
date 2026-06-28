@@ -70,7 +70,7 @@ export function PanelSection({
           <h3 className="text-[13px] font-medium text-fg">{title}</h3>
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border bg-bg-elevated">
+      <div className="overflow-hidden rounded-xl border border-border bg-[var(--muted)]">
         {children}
       </div>
     </section>

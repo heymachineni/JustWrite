@@ -126,29 +126,37 @@ export function PageRow({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             onSelect={() => store.getState().setPinned(page.id, !page.pinned)}
+            className="justify-between"
           >
+            {page.pinned ? "Unpin" : "Pin"}
             {page.pinned ? (
-              <>
-                <PinOff className="h-4 w-4" /> Unpin
-              </>
+              <PinOff className="h-4 w-4 text-faint-fg" />
             ) : (
-              <>
-                <Pin className="h-4 w-4" /> Pin
-              </>
+              <Pin className="h-4 w-4 text-faint-fg" />
             )}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={startRename}>
-            <Pencil className="h-4 w-4" /> Rename
+          <DropdownMenuItem onSelect={startRename} className="justify-between">
+            Rename
+            <Pencil className="h-4 w-4 text-faint-fg" />
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => store.getState().duplicatePage(page.id)}>
-            <Copy className="h-4 w-4" /> Duplicate
+          <DropdownMenuItem
+            onSelect={() => store.getState().duplicatePage(page.id)}
+            className="justify-between"
+          >
+            Duplicate
+            <Copy className="h-4 w-4 text-faint-fg" />
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onShare(page.id)}>
-            <Share2 className="h-4 w-4" /> Share
+          <DropdownMenuItem
+            onSelect={() => onShare(page.id)}
+            className="justify-between"
+          >
+            Share
+            <Share2 className="h-4 w-4 text-faint-fg" />
           </DropdownMenuItem>
           <DropdownMenuSub>
-            <DropdownMenuSubTriggerStyled>
-              <FolderInput className="h-4 w-4" /> Move to
+            <DropdownMenuSubTriggerStyled className="justify-between">
+              Move to
+              <FolderInput className="h-4 w-4 text-faint-fg" />
             </DropdownMenuSubTriggerStyled>
             <DropdownMenuSubContent>
               <DropdownMenuItem
@@ -173,8 +181,10 @@ export function PageRow({
           <DropdownMenuItem
             destructive
             onSelect={() => store.getState().deletePage(page.id)}
+            className="justify-between"
           >
-            <Trash2 className="h-4 w-4" /> Delete
+            Delete
+            <Trash2 className="h-4 w-4" />
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
