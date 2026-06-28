@@ -9,9 +9,8 @@ import {
   useFocusSettingsStore,
   useFocusSessionStore,
 } from "@/features/focus/store";
-import { stripThoughtlessPadding } from "@/features/focus/thoughtlessPadding";
+import { useGlobalShortcuts } from "@/features/shortcuts/useGlobalShortcuts";
 import { useOverlayLayout } from "@/lib/useBreakpoint";
-import { Editor } from "@/features/editor/Editor";
 import { WordCount } from "@/features/editor/WordCount";
 import { PageDate } from "@/features/editor/PageDate";
 import { Sidebar } from "@/features/sidebar/Sidebar";
@@ -26,7 +25,7 @@ import { useTypingMusic } from "@/features/focus/useTypingMusic";
 import { useTypewriterSound } from "@/features/focus/useTypewriterSound";
 import { MusicModeBanner } from "@/features/focus/MusicModeBanner";
 import { BackspaceLimitBanner } from "@/features/focus/BackspaceLimitBanner";
-import { useGlobalShortcuts } from "@/features/shortcuts/useGlobalShortcuts";
+import { Editor } from "@/features/editor/Editor";
 
 const SIDEBAR_WIDTH = 248;
 
@@ -129,10 +128,8 @@ export function AppShell() {
 
   const exitFocus = () => {
     if (editor && activePageId) {
-      const stripped = stripThoughtlessPadding(editor.getJSON());
-      editor.commands.setContent(stripped, { emitUpdate: false });
       usePagesStore.getState().updatePage(activePageId, {
-        content: stripped,
+        content: editor.getJSON(),
         text: editor.getText(),
       });
     }
@@ -221,20 +218,8 @@ export function AppShell() {
           }
         />
 
-        <div
-          className={
-            focusMode
-              ? "thoughtless-canvas flex min-h-0 flex-1 flex-col justify-center bg-bg"
-              : "min-h-0 flex-1 overflow-y-auto"
-          }
-        >
-          <div
-            className={
-              focusMode
-                ? "thoughtless-main w-full px-6 py-16"
-                : "mx-auto w-full max-w-[640px] px-6 pb-[45vh] pt-16 md:px-8"
-            }
-          >
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[640px] px-6 pb-[45vh] pt-16 md:px-8">
             {!focusMode && !nightModeEnabled && <PageDate />}
             <Editor
               pageId={activePageId}

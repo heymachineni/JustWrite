@@ -9,7 +9,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { usePagesStore } from "@/features/pages/store";
+import { publishSharedPage, unpublishSharedPage } from "./publish";
 
 export function ShareDialog({
   pageId,
@@ -20,6 +22,8 @@ export function ShareDialog({
 }) {
   const page = usePagesStore((s) => (pageId ? s.pages[pageId] : null));
   const [copied, setCopied] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const { show: toast } = useToast();
 
   React.useEffect(() => {
     if (!pageId) setCopied(false);
@@ -30,8 +34,38 @@ export function ShareDialog({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const link = page.shareId ? `${origin}/share/${page.shareId}` : "";
 
-  const enableShare = () => usePagesStore.getState().sharePage(page.id);
-  const disableShare = () => usePagesStore.getState().unsharePage(page.id);
+  const enableShare = async () => {
+    setBusy(true);
+    try {
+      const shareId = usePagesStore.getState().sharePage(page.id);
+      const updated = usePagesStore.getState().pages[page.id];
+      if (!updated) return;
+      await publishSharedPage(updated, shareId);
+      toast("Link published");
+    } catch (error) {
+      toast(
+        error instanceof Error ? error.message : "Could not publish link."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disableShare = async () => {
+    const shareId = page.shareId;
+    setBusy(true);
+    try {
+      usePagesStore.getState().unsharePage(page.id);
+      if (shareId) await unpublishSharedPage(shareId);
+      toast("Sharing stopped");
+    } catch (error) {
+      toast(
+        error instanceof Error ? error.message : "Could not stop sharing."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const copy = async () => {
     try {
@@ -39,7 +73,7 @@ export function ShareDialog({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      /* ignore */
+      toast("Could not copy link");
     }
   };
 
@@ -48,15 +82,20 @@ export function ShareDialog({
       <DialogContent className="max-w-md">
         <DialogTitle>Share this page</DialogTitle>
         <DialogDescription>
-          Publish a read-only link. No account needed — your writing stays on
-          this device until you connect sync later.
+          Publish a read-only link anyone can open in their browser.
         </DialogDescription>
 
         <div className="mt-5 space-y-3">
           {!page.shared ? (
-            <Button variant="default" size="lg" className="w-full" onClick={enableShare}>
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full"
+              disabled={busy}
+              onClick={() => void enableShare()}
+            >
               <Globe className="h-4 w-4" />
-              Publish link
+              {busy ? "Publishing…" : "Publish link"}
             </Button>
           ) : (
             <>
@@ -67,7 +106,7 @@ export function ShareDialog({
                   variant="subtle"
                   size="sm"
                   className="ml-auto shrink-0"
-                  onClick={copy}
+                  onClick={() => void copy()}
                 >
                   {copied ? (
                     <Check className="h-3.5 w-3.5" />
@@ -78,10 +117,12 @@ export function ShareDialog({
                 </Button>
               </div>
               <button
-                onClick={disableShare}
-                className="text-sm text-muted-fg transition-colors hover:text-fg"
+                type="button"
+                disabled={busy}
+                onClick={() => void disableShare()}
+                className="text-sm text-muted-fg transition-colors hover:text-fg disabled:opacity-50"
               >
-                Stop sharing
+                {busy ? "Stopping…" : "Stop sharing"}
               </button>
             </>
           )}

@@ -8,16 +8,7 @@ import { usePagesStore, wordCount } from "@/features/pages/store";
 import { useSettingsStore } from "@/features/settings/store";
 import { useFocusSettingsStore, useFocusSessionStore } from "@/features/focus/store";
 import { useWordTargetLimit, useWordTargetKeyBlock } from "@/features/focus/useWordTargetLimit";
-import {
-  applyThoughtlessPadding,
-  stripThoughtlessPadding,
-} from "@/features/focus/thoughtlessPadding";
-import {
-  forceThoughtlessFocus,
-  useThoughtlessFocus,
-} from "@/features/focus/useThoughtlessFocus";
 import { LinkPopover, type LinkTarget } from "./LinkPopover";
-import { ThoughtlessOverlay } from "./ThoughtlessOverlay";
 import {
   getCharShakeRange,
   dispatchCharShake,
@@ -55,7 +46,6 @@ export function Editor({
   wordTargetLimitRef.current = wordTargetLimit;
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [linkTarget, setLinkTarget] = React.useState<LinkTarget | null>(null);
   const shakeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -124,18 +114,6 @@ export function Editor({
           spellcheck: "true",
         },
         handleKeyDown: (_view, event) => {
-          const blockedNav = [
-            "ArrowUp",
-            "ArrowDown",
-            "ArrowLeft",
-            "ArrowRight",
-          ];
-
-          if (focusModeRef.current && blockedNav.includes(event.key)) {
-            event.preventDefault();
-            return true;
-          }
-
           const limit = wordTargetLimitRef.current;
           if (
             limit &&
@@ -159,11 +137,6 @@ export function Editor({
           }
 
           if (event.key === "Backspace" || event.key === "Delete") {
-            if (focusModeRef.current) {
-              event.preventDefault();
-              return true;
-            }
-
             if (disableBackspaceRef.current) {
               if (!isDeletionAllowed(_view, event.key)) {
                 event.preventDefault();
@@ -199,9 +172,6 @@ export function Editor({
   const { atOrOverLimit } = useWordTargetLimit(editor);
   useWordTargetKeyBlock(editor, atOrOverLimit);
 
-  useThoughtlessFocus(editor, scrollRef, focusMode, timeLocked);
-
-  // Capture-phase guard so backspace/delete never clears when disabled
   React.useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
@@ -211,13 +181,6 @@ export function Editor({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Backspace" && event.key !== "Delete") return;
-
-      if (focusModeRef.current) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      }
-
       if (!disableBackspaceRef.current) return;
 
       const ed = editorRef.current;
@@ -239,7 +202,6 @@ export function Editor({
     if (editor) editor.setEditable(!readOnly && !timeLocked);
   }, [editor, readOnly, timeLocked]);
 
-  // Global Cmd/Ctrl+V block when paste disabled
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (
@@ -257,65 +219,39 @@ export function Editor({
   const activeIdRef = React.useRef(pageId);
   activeIdRef.current = pageId;
   const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wasFocusRef = React.useRef(false);
 
-  const commit = React.useCallback((id: string, stripPadding = false) => {
+  const commit = React.useCallback((id: string) => {
     const ed = editorRef.current;
     if (!ed) return;
-    let content = ed.getJSON() as JSONContent;
-    if (stripPadding) content = stripThoughtlessPadding(content);
     usePagesStore.getState().updatePage(id, {
-      content,
+      content: ed.getJSON() as JSONContent,
       text: ed.getText(),
     });
   }, []);
 
-  const flush = React.useCallback((id: string, stripPadding = false) => {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
-    commit(id, stripPadding);
-  }, [commit]);
+  const flush = React.useCallback(
+    (id: string) => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      commit(id);
+    },
+    [commit]
+  );
 
   React.useEffect(() => {
     if (!editor || readOnly) return;
     const onUpdate = () => {
       const id = activeIdRef.current;
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(
-        () => commit(id, focusModeRef.current),
-        AUTOSAVE_MS
-      );
+      saveTimer.current = setTimeout(() => commit(id), AUTOSAVE_MS);
     };
     editor.on("update", onUpdate);
     return () => {
       editor.off("update", onUpdate);
     };
   }, [editor, commit, readOnly]);
-
-  // Apply / strip thoughtless padding when entering / leaving focus mode
-  React.useEffect(() => {
-    const ed = editorRef.current;
-    if (!ed) return;
-
-    if (focusMode && !wasFocusRef.current) {
-      const page = usePagesStore.getState().pages[pageId];
-      const padded = applyThoughtlessPadding(page?.content as JSONContent);
-      ed.commands.setContent(padded, { emitUpdate: false });
-      requestAnimationFrame(() =>
-        forceThoughtlessFocus(ed, scrollRef.current)
-      );
-    }
-
-    if (!focusMode && wasFocusRef.current) {
-      const stripped = stripThoughtlessPadding(ed.getJSON() as JSONContent);
-      ed.commands.setContent(stripped, { emitUpdate: false });
-      flush(pageId, false);
-    }
-
-    wasFocusRef.current = focusMode;
-  }, [focusMode, pageId, flush]);
 
   const prevIdRef = React.useRef<string | null>(null);
   const selMemory = React.useRef<Map<string, { from: number; to: number }>>(
@@ -330,11 +266,9 @@ export function Editor({
     const pageChanged = prev !== null && prev !== pageId;
 
     if (pageChanged) {
-      if (!focusMode) {
-        const { from, to } = ed.state.selection;
-        selMemory.current.set(prev, { from, to });
-      }
-      flush(prev, focusMode);
+      const { from, to } = ed.state.selection;
+      selMemory.current.set(prev, { from, to });
+      flush(prev);
       const prevPage = usePagesStore.getState().pages[prev];
       if (prevPage && prevPage.text.trim() === "") {
         usePagesStore.getState().deletePage(prev);
@@ -342,43 +276,31 @@ export function Editor({
       }
     }
 
-    if (!focusMode || pageChanged) {
-      const page = usePagesStore.getState().pages[pageId];
-      const content = focusMode
-        ? applyThoughtlessPadding(page?.content as JSONContent)
-        : page?.content ?? "";
-      ed.commands.setContent(content, { emitUpdate: false });
-      useFocusSessionStore.getState().resetTargetNotification();
+    const page = usePagesStore.getState().pages[pageId];
+    ed.commands.setContent(page?.content ?? "", { emitUpdate: false });
+    useFocusSessionStore.getState().resetTargetNotification();
 
-      if (!focusMode) {
-        const size = ed.state.doc.content.size;
-        const remembered = selMemory.current.get(pageId);
-        if (remembered) {
-          const from = Math.min(Math.max(1, remembered.from), size);
-          const to = Math.min(Math.max(from, remembered.to), size);
-          ed.commands.setTextSelection({ from, to });
-        }
-      } else {
-        requestAnimationFrame(() =>
-          forceThoughtlessFocus(ed, scrollRef.current)
-        );
-      }
+    const size = ed.state.doc.content.size;
+    const remembered = selMemory.current.get(pageId);
+    if (remembered) {
+      const from = Math.min(Math.max(1, remembered.from), size);
+      const to = Math.min(Math.max(from, remembered.to), size);
+      ed.commands.setTextSelection({ from, to });
     }
 
     if (!isInitial && pageChanged && !readOnly) ed.commands.focus();
     prevIdRef.current = pageId;
-  }, [pageId, flush, readOnly, focusMode]);
+  }, [pageId, flush, readOnly]);
 
   React.useEffect(() => {
-    const onBeforeUnload = () =>
-      flush(activeIdRef.current, focusModeRef.current);
+    const onBeforeUnload = () => flush(activeIdRef.current);
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [flush]);
 
   React.useEffect(() => {
     if (readOnly) return;
-    return () => flush(activeIdRef.current, focusModeRef.current);
+    return () => flush(activeIdRef.current);
   }, [flush, readOnly]);
 
   React.useEffect(() => {
@@ -410,29 +332,6 @@ export function Editor({
 
   const rootClass = cn(nightWriting && "night-writing");
 
-  if (focusMode) {
-    return (
-      <div
-        ref={containerRef}
-        className={cn("editor-root thoughtless-focus w-full", rootClass)}
-        data-font={font}
-      >
-        <section
-          className="thoughtless-section relative w-full"
-          style={{ height: "calc(5 * var(--focus-line-height))" }}
-        >
-          <div
-            ref={scrollRef}
-            className="thoughtless-scroll h-full w-full overflow-hidden"
-          >
-            <EditorContent editor={editor} />
-          </div>
-          <ThoughtlessOverlay />
-        </section>
-      </div>
-    );
-  }
-
   return (
     <div
       ref={containerRef}
@@ -440,7 +339,7 @@ export function Editor({
       data-font={font}
     >
       <EditorContent editor={editor} className={cn("min-h-[50vh]")} />
-      {!readOnly && linkTarget && editorMode === "markdown" && (
+      {!readOnly && !focusMode && linkTarget && editorMode === "markdown" && (
         <LinkPopover
           editor={editor}
           target={linkTarget}

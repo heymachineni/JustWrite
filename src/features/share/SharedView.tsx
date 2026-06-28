@@ -14,34 +14,32 @@ interface SharedPage {
   createdAt: number;
 }
 
-function loadSharedPage(shareId: string): SharedPage | null {
-  try {
-    const raw = localStorage.getItem("blank.pages.v1");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const pages = parsed?.state?.pages ?? {};
-    for (const id of Object.keys(pages)) {
-      const p = pages[id];
-      if (p.shared && p.shareId === shareId) {
-        return {
-          title: p.title,
-          content: p.content,
-          updatedAt: p.updatedAt,
-          createdAt: p.createdAt,
-        };
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
 export function SharedView({ shareId }: { shareId: string }) {
-  const [page, setPage] = React.useState<SharedPage | null | undefined>(undefined);
+  const [page, setPage] = React.useState<SharedPage | null | undefined>(
+    undefined
+  );
 
   React.useEffect(() => {
-    setPage(loadSharedPage(shareId));
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/share/${encodeURIComponent(shareId)}`);
+        if (cancelled) return;
+        if (!res.ok) {
+          setPage(null);
+          return;
+        }
+        const data = (await res.json()) as SharedPage;
+        setPage(data);
+      } catch {
+        if (!cancelled) setPage(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [shareId]);
 
   const editor = useEditor(
@@ -64,7 +62,7 @@ export function SharedView({ shareId }: { shareId: string }) {
         <FileText className="h-8 w-8 text-faint-fg" strokeWidth={1.5} />
         <h1 className="text-lg font-semibold text-fg">Page not found</h1>
         <p className="max-w-sm text-sm text-muted-fg">
-          This link may have been unshared, or the page lives on another device.
+          This link may have been unshared, or the page is no longer available.
         </p>
       </div>
     );

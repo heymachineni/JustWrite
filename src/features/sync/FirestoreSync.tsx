@@ -132,6 +132,7 @@ export function FirestoreSync() {
         if (change.removed) {
           const local = usePagesStore.getState().pages[change.id];
           if (!local) return;
+          usePagesStore.getState().deletePage(change.id);
           return;
         }
         if (!change.page) return;
@@ -141,7 +142,12 @@ export function FirestoreSync() {
       }
 
       if (change.type === "project" && change.id) {
-        if (change.removed) return;
+        if (change.removed) {
+          const local = usePagesStore.getState().projects[change.id];
+          if (!local) return;
+          usePagesStore.getState().deleteProject(change.id);
+          return;
+        }
         if (!change.project) return;
         usePagesStore.getState().applyRemoteProject(change.project);
       }

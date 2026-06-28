@@ -19,6 +19,7 @@ import {
   DropdownMenuSubTriggerStyled,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
+import { publishSharedPage } from "@/features/share/publish";
 import { useOverlayLayout } from "@/lib/useBreakpoint";
 import { APP_VERSION } from "@/lib/version";
 import { cn } from "@/lib/utils";
@@ -315,7 +316,23 @@ export function TopBar({
   const { show: toast } = useToast();
 
   const handleShare = async () => {
-    const shareId = usePagesStore.getState().sharePage(activePageId);
+    const page = usePagesStore.getState().pages[activePageId];
+    if (!page) return;
+
+    let shareId = page.shareId;
+    if (!page.shared || !shareId) {
+      shareId = usePagesStore.getState().sharePage(activePageId);
+      const updated = usePagesStore.getState().pages[activePageId];
+      if (updated && shareId) {
+        try {
+          await publishSharedPage(updated, shareId);
+        } catch {
+          toast("Could not publish link");
+          return;
+        }
+      }
+    }
+
     const link = `${window.location.origin}/share/${shareId}`;
     try {
       await navigator.clipboard.writeText(link);

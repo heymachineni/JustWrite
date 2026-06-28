@@ -1,6 +1,6 @@
 # Just Write
 
-A calm place to write. Notes, drafts, and thoughts — without clutter, without noise.
+A calm place to write. Notes, drafts, and thoughts without clutter or noise.
 
 Open the app and start typing. Sign in to save your work across devices.
 
@@ -26,12 +26,12 @@ You need a Firebase project with **Authentication**, **Firestore**, and email de
 ### 1. Create a Firebase project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a project (enable Google Analytics if you want — optional)
+2. Create a project (Google Analytics is optional)
 
 ### 2. Authentication
 
 1. **Build → Authentication → Get started**
-2. No sign-in providers need to be enabled for OTP — we use custom tokens from the server
+2. No sign-in providers need to be enabled for OTP. We use custom tokens from the server
 3. Under **Settings → Authorized domains**, add your production domain (and `localhost` for dev)
 
 ### 3. Firestore
@@ -54,14 +54,14 @@ Or paste the rules manually in the Firestore **Rules** tab.
    - Auth domain → `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
    - Project ID → `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 
-### 5. Service account (server — OTP + custom tokens)
+### 5. Service account (server, OTP + custom tokens)
 
 1. **Project settings → Service accounts → Generate new private key**
 2. Minify the JSON to a single line and set `FIREBASE_SERVICE_ACCOUNT_JSON` in `.env.local`
 
 ### 6. Email OTP (Resend)
 
-Resend is a separate email service — Firebase does not send OTP emails for you.
+Resend is a separate email service. Firebase does not send OTP emails for you.
 
 1. Go to [resend.com](https://resend.com) and create a free account
 2. **API Keys → Create API Key** → copy it to `RESEND_API_KEY` in `.env.local`

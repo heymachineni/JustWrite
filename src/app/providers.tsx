@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { AuthModals } from "@/features/auth/AuthModals";
 import { FirestoreSync } from "@/features/sync/FirestoreSync";
+import { ShareSync } from "@/features/share/ShareSync";
 import { useSettingsStore } from "@/features/settings/store";
 
 function ThemeController() {
@@ -57,6 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {children}
             <AuthModals />
             <FirestoreSync />
+            <ShareSync />
           </TooltipProvider>
         </ToastProvider>
       </AuthProvider>
