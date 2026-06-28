@@ -7,13 +7,25 @@ export function OtpInput({
   value,
   onChange,
   disabled,
+  invalid,
+  autoFocus = true,
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  invalid?: boolean;
+  autoFocus?: boolean;
 }) {
   const inputsRef = React.useRef<(HTMLInputElement | null)[]>([]);
   const digits = Array.from({ length: 6 }, (_, i) => value[i] ?? "");
+
+  React.useEffect(() => {
+    if (!autoFocus || disabled) return;
+    const id = window.requestAnimationFrame(() => {
+      inputsRef.current[0]?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [autoFocus, disabled]);
 
   const setDigit = (index: number, digit: string) => {
     const clean = digit.replace(/\D/g, "").slice(-1);
@@ -59,15 +71,19 @@ export function OtpInput({
           }}
           type="text"
           inputMode="numeric"
-          autoComplete="one-time-code"
+          autoComplete={i === 0 ? "one-time-code" : "off"}
+          autoFocus={autoFocus && i === 0}
           maxLength={1}
           disabled={disabled}
           value={digit}
+          aria-invalid={invalid}
           onChange={(e) => setDigit(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           className={cn(
-            "h-11 w-10 rounded-lg border border-border bg-bg text-center text-[17px] font-medium text-fg outline-none transition-colors",
-            "focus:border-border-strong focus:ring-2 focus:ring-[var(--ring)]",
+            "h-11 w-10 rounded-full border bg-bg text-center text-[17px] font-medium text-fg outline-none transition-colors",
+            invalid
+              ? "border-destructive text-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/25"
+              : "border-border focus:border-border-strong focus:ring-2 focus:ring-[var(--ring)]",
             disabled && "opacity-50"
           )}
         />
