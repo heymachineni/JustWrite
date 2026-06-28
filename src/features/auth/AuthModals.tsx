@@ -277,6 +277,14 @@ export function AuthModals() {
             <div className="mt-5 flex flex-col gap-2.5">
               <button
                 type="button"
+                onClick={handleResend}
+                disabled={sending || verifying}
+                className="w-full rounded-full py-2.5 text-[14px] font-medium text-muted-fg transition-colors hover:bg-[var(--hover)] hover:text-fg disabled:opacity-50"
+              >
+                {sending ? "Sending…" : "Resend code"}
+              </button>
+              <button
+                type="button"
                 onClick={() => void handleVerify()}
                 disabled={verifying || code.length !== 6}
                 className={cn(
@@ -285,14 +293,6 @@ export function AuthModals() {
                 )}
               >
                 {verifying ? "Verifying…" : "Verify code"}
-              </button>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={sending || verifying}
-                className="w-full rounded-full py-2.5 text-[14px] font-medium text-muted-fg transition-colors hover:bg-[var(--hover)] hover:text-fg disabled:opacity-50"
-              >
-                {sending ? "Sending…" : "Resend code"}
               </button>
             </div>
           </div>
