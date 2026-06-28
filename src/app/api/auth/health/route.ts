@@ -49,6 +49,19 @@ export async function GET() {
     }
   }
 
+  let authOk = false;
+  let authError: string | null = null;
+
+  if (isFirebaseAdminConfigured()) {
+    try {
+      const { testAuthServer } = await import("@/lib/firebase/auth-server");
+      authOk = await testAuthServer();
+    } catch (error) {
+      authError =
+        error instanceof Error ? error.message : "Auth server check failed";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     env: {
@@ -60,6 +73,8 @@ export async function GET() {
       adminInitError: getAdminInitError(),
       firestoreOk,
       firestoreError,
+      authOk,
+      authError,
       resendKeySet: Boolean(process.env.RESEND_API_KEY),
       authEmailFrom: process.env.AUTH_EMAIL_FROM ?? "(default onboarding@resend.dev)",
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? null,

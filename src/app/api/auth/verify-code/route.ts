@@ -25,33 +25,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { getAdminAuth, isFirebaseAdminConfigured } = await import(
-      "@/lib/firebase/admin"
-    );
-
-    if (!isFirebaseAdminConfigured()) {
-      return NextResponse.json({
-        ok: true,
-        demo: true,
-        user: { email, uid: `demo-${email}` },
-      });
-    }
-
-    const auth = await getAdminAuth();
-    if (!auth) {
-      return NextResponse.json({ error: "Auth unavailable." }, { status: 500 });
-    }
-
-    let user;
     try {
-      user = await auth.getUserByEmail(email);
-    } catch {
-      user = await auth.createUser({ email });
+      const { issueAuthTokenForEmail } = await import("@/lib/firebase/auth-server");
+      const { token } = await issueAuthTokenForEmail(email);
+      return NextResponse.json({ ok: true, token });
+    } catch (error) {
+      console.error("[auth/verify-code] token issue failed:", error);
+      const message =
+        error instanceof Error ? error.message : "Auth unavailable.";
+      return NextResponse.json({ error: message }, { status: 500 });
     }
-
-    const token = await auth.createCustomToken(user.uid);
-
-    return NextResponse.json({ ok: true, token });
   } catch (error) {
     console.error("[auth/verify-code]", error);
     return NextResponse.json(
