@@ -17,6 +17,9 @@ import { PageDate } from "@/features/editor/PageDate";
 import { Sidebar } from "@/features/sidebar/Sidebar";
 import { TopBar } from "@/features/app/TopBar";
 import { SidePanel, type PanelView } from "@/features/app/SidePanel";
+import { IntroPanel } from "@/features/app/IntroPanel";
+import { PANEL_FLOAT_LEFT, PANEL_SHELL } from "@/lib/panel-layout";
+import { cn } from "@/lib/utils";
 import { FocusTimeLimitBar } from "@/features/focus/FocusTimeLimitBar";
 import { NightModeFeature } from "@/features/focus/NightModeFeature";
 import { useTypingMusic } from "@/features/focus/useTypingMusic";
@@ -34,8 +37,10 @@ export function AppShell() {
 
   const sidebarOpen = useSettingsStore((s) => s.sidebarOpen);
   const focusMode = useSettingsStore((s) => s.focusMode);
+  const hasSeenIntro = useSettingsStore((s) => s.hasSeenIntro);
   const setSidebarOpen = useSettingsStore((s) => s.setSidebarOpen);
   const setFocusMode = useSettingsStore((s) => s.setFocusMode);
+  const setHasSeenIntro = useSettingsStore((s) => s.setHasSeenIntro);
 
   const nightModeEnabled = useFocusSettingsStore((s) => s.nightModeEnabled);
   const musicModeEnabled = useFocusSettingsStore((s) => s.musicModeEnabled);
@@ -49,6 +54,27 @@ export function AppShell() {
 
   const [editor, setEditor] = React.useState<TiptapEditor | null>(null);
   const [panelView, setPanelView] = React.useState<PanelView>(null);
+  const [introOpen, setIntroOpen] = React.useState(false);
+
+  const dismissIntro = React.useCallback(() => {
+    setHasSeenIntro(true);
+    setIntroOpen(false);
+  }, [setHasSeenIntro]);
+
+  const openAboutFromIntro = React.useCallback(() => {
+    dismissIntro();
+    setPanelView("about");
+  }, [dismissIntro]);
+
+  const openTermsFromIntro = React.useCallback(() => {
+    dismissIntro();
+    setPanelView("terms");
+  }, [dismissIntro]);
+
+  const openPrivacyFromIntro = React.useCallback(() => {
+    dismissIntro();
+    setPanelView("privacy");
+  }, [dismissIntro]);
 
   const handleEditorReady = React.useCallback((ed: TiptapEditor | null) => {
     setEditor((prev) => (prev === ed ? prev : ed));
@@ -88,6 +114,12 @@ export function AppShell() {
       setSidebarOpen(false);
     }
   }, [settingsHydrated, setSidebarOpen]);
+
+  React.useEffect(() => {
+    if (!settingsHydrated || hasSeenIntro) return;
+    setIntroOpen(true);
+    setSidebarOpen(false);
+  }, [settingsHydrated, hasSeenIntro, setSidebarOpen]);
 
   const openLink = React.useCallback(() => {
     window.dispatchEvent(new CustomEvent("blank:link"));
@@ -144,11 +176,15 @@ export function AppShell() {
                 onClick={() => setSidebarOpen(false)}
               />
               <motion.aside
-                className="fixed inset-y-0 left-0 z-50 border-r border-border bg-bg"
+                className={cn(
+                  "fixed z-50 overflow-hidden",
+                  PANEL_FLOAT_LEFT,
+                  PANEL_SHELL
+                )}
                 style={{ width: SIDEBAR_WIDTH }}
-                initial={{ x: -SIDEBAR_WIDTH }}
+                initial={{ x: -(SIDEBAR_WIDTH + 24) }}
                 animate={{ x: 0 }}
-                exit={{ x: -SIDEBAR_WIDTH }}
+                exit={{ x: -(SIDEBAR_WIDTH + 24) }}
                 transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
               >
                 <Sidebar />
@@ -218,7 +254,18 @@ export function AppShell() {
         />
       </main>
 
-      <SidePanel view={panelView} onClose={() => setPanelView(null)} />
+      <SidePanel
+        view={panelView}
+        onClose={() => setPanelView(null)}
+        onNavigate={setPanelView}
+      />
+      <IntroPanel
+        open={introOpen}
+        onStart={dismissIntro}
+        onAbout={openAboutFromIntro}
+        onTerms={openTermsFromIntro}
+        onPrivacy={openPrivacyFromIntro}
+      />
     </div>
   );
 }

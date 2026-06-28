@@ -3,13 +3,19 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { BOTTOM_SHEET_INSET, PANEL_FLOAT_RIGHT, PANEL_RADIUS, PANEL_SHELL } from "@/lib/panel-layout";
 
 export const Sheet = DialogPrimitive.Root;
 export const SheetTrigger = DialogPrimitive.Trigger;
 export const SheetClose = DialogPrimitive.Close;
 
-const bottomSheetClass =
-  "left-3 right-3 bottom-3 flex flex-col rounded-[16px] border border-border pb-3 data-[state=open]:animate-sheet-up data-[state=closed]:animate-sheet-down max-lg:bottom-[max(12px,env(safe-area-inset-bottom))] max-lg:left-3 max-lg:right-3";
+const bottomSheetClass = cn(
+  BOTTOM_SHEET_INSET,
+  "flex flex-col pb-3",
+  PANEL_RADIUS,
+  PANEL_SHELL,
+  "data-[state=open]:animate-sheet-up data-[state=closed]:animate-sheet-down"
+);
 
 export function SheetContent({
   className,
@@ -27,10 +33,14 @@ export function SheetContent({
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed z-50 bg-bg shadow-[var(--shadow-lg)] outline-none",
+          "fixed z-50 outline-none",
           side === "bottom" && bottomSheetClass,
           side === "right" &&
-            "inset-y-0 right-0 h-full w-full max-w-[360px] border-l border-border data-[state=open]:animate-sheet-right data-[state=closed]:animate-sheet-right-out",
+            cn(
+              PANEL_FLOAT_RIGHT,
+              PANEL_SHELL,
+              "h-auto w-full max-w-[360px] data-[state=open]:animate-sheet-right data-[state=closed]:animate-sheet-right-out"
+            ),
           className
         )}
         {...props}

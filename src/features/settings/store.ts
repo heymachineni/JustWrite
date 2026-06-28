@@ -13,6 +13,7 @@ interface SettingsState {
   focusMode: boolean;
   sidebarOpen: boolean;
   showWordCount: boolean;
+  hasSeenIntro: boolean;
   _hydrated: boolean;
 
   setTheme: (t: Theme) => void;
@@ -26,6 +27,7 @@ interface SettingsState {
   setSidebarOpen: (v: boolean) => void;
   setShowWordCount: (v: boolean) => void;
   toggleWordCount: () => void;
+  setHasSeenIntro: (v: boolean) => void;
   setHydrated: () => void;
 }
 
@@ -39,6 +41,7 @@ export const useSettingsStore = create<SettingsState>()(
       focusMode: false,
       sidebarOpen: true,
       showWordCount: false,
+      hasSeenIntro: false,
       _hydrated: false,
 
       setTheme: (theme) => set({ theme }),
@@ -52,6 +55,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setShowWordCount: (showWordCount) => set({ showWordCount }),
       toggleWordCount: () => set((s) => ({ showWordCount: !s.showWordCount })),
+      setHasSeenIntro: (hasSeenIntro) => set({ hasSeenIntro }),
       setHydrated: () => set({ _hydrated: true }),
     }),
     {
@@ -63,6 +67,7 @@ export const useSettingsStore = create<SettingsState>()(
         showToolbar: s.showToolbar,
         sidebarOpen: s.sidebarOpen,
         showWordCount: s.showWordCount,
+        hasSeenIntro: s.hasSeenIntro,
       }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     }
