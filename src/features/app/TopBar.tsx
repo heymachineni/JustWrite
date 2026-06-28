@@ -275,6 +275,12 @@ function DesktopOptionsMenu({
         <DropdownMenuItem onSelect={() => menu.openPanel("about")}>
           About
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => menu.openPanel("terms")}>
+          Terms
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => menu.openPanel("privacy")}>
+          Privacy
+        </DropdownMenuItem>
         <DropdownMenuLabel className="normal-case tracking-normal text-faint-fg">
           Version {APP_VERSION}
         </DropdownMenuLabel>

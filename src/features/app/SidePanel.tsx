@@ -52,21 +52,25 @@ export function SidePanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [view, onClose]);
 
+  const showLegalFooter =
+    onNavigate &&
+    (view === "about" || view === "terms" || view === "privacy");
+
   const panelContent = view ? (
     <div className="flex min-h-0 flex-1 flex-col">
       <PanelHeader title={PANEL_TITLES[view]} onClose={onClose} />
-      <PanelBody className={view === "about" ? "pb-4" : undefined}>
+      <PanelBody className={showLegalFooter ? "pb-4" : undefined}>
         {view === "shortcuts" && <ShortcutsContent />}
         {view === "about" && <AboutContent />}
         {view === "terms" && <TermsContent />}
         {view === "privacy" && <PrivacyContent />}
       </PanelBody>
-      {view === "about" && onNavigate ? (
+      {showLegalFooter ? (
         <div className="shrink-0 border-t border-border px-5 py-4 md:px-6">
           <LegalFooter
             links={[
-              { label: "Terms", onClick: () => onNavigate("terms") },
-              { label: "Privacy", onClick: () => onNavigate("privacy") },
+              { label: "Terms", onClick: () => onNavigate!("terms") },
+              { label: "Privacy", onClick: () => onNavigate!("privacy") },
             ]}
           />
         </div>
@@ -77,7 +81,10 @@ export function SidePanel({
   if (useBottomSheet) {
     return (
       <Sheet open={view != null} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="bottom" className="max-h-[min(92vh,720px)]">
+        <SheetContent
+          side="bottom"
+          className="max-h-[min(92vh,720px)] flex flex-col"
+        >
           {panelContent}
         </SheetContent>
       </Sheet>

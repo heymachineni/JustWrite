@@ -83,7 +83,7 @@ function IntroContent({
           Just Write
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-muted-fg">
-          Open a page, just writing. That&apos;s the whole setup.
+          Open a page, just write. That&apos;s the whole setup.
         </p>
 
         <div className="mt-8 space-y-4 text-[15px] leading-[1.65] text-fg/90">

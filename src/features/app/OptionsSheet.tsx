@@ -141,6 +141,14 @@ function RootScreen({
           label="About"
           onClick={() => menu.openPanel("about")}
         />
+        <PanelActionRow
+          label="Terms"
+          onClick={() => menu.openPanel("terms")}
+        />
+        <PanelActionRow
+          label="Privacy"
+          onClick={() => menu.openPanel("privacy")}
+        />
         <PanelRow>
           <span className="text-[12px] text-faint-fg">
             Version {APP_VERSION}

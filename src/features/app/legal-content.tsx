@@ -2,10 +2,10 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const CONTACT_EMAIL = "heymachineni@gmail.com";
-export const LEGAL_UPDATED = "June 27, 2026";
+export const LEGAL_UPDATED = "June 14, 2026";
 
 function LegalDoc({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-8 pb-2">{children}</div>;
+  return <div className="space-y-0 pb-2">{children}</div>;
 }
 
 function LegalIntro({ children }: { children: React.ReactNode }) {
@@ -24,11 +24,11 @@ function LegalSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2.5 border-b border-border py-6 last:border-b-0">
       <h3 className="text-[14px] font-semibold tracking-tight text-fg">
         {title}
       </h3>
-      <div className="space-y-3 text-[15px] leading-[1.65] text-muted-fg">
+      <div className="space-y-2.5 text-[15px] leading-[1.65] text-muted-fg">
         {children}
       </div>
     </section>
