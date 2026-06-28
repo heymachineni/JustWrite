@@ -144,13 +144,17 @@ export function PanelActionRow({
       <span
         className={cn(
           "flex items-center gap-2.5 text-[14px]",
-          destructive ? "text-destructive" : "text-fg"
+          destructive ? "text-red-500" : "text-fg"
         )}
       >
         {leading}
         {label}
       </span>
-      {trailing}
+      {trailing ? (
+        <span className={cn("shrink-0", destructive && "text-red-500")}>
+          {trailing}
+        </span>
+      ) : null}
     </PanelRow>
   );
 }
